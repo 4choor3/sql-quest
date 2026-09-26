@@ -1,128 +1,108 @@
 # SQL 闯关训练场
 
-在浏览器里**真跑 SQL** 的闯关式练习工具。39 道关卡，从 `SELECT` 一路到窗口函数与 CTE，写完点运行，结果实时校验并告诉你差在哪。
+在浏览器里真跑 SQL 的闯关练习工具。50 道关卡，每道题写真正的 SQL，由 SQLite 执行后比对结果集，写错时告诉你差在哪一行。
 
-不是选择题，不是填空题 —— 每道题你都要写真正的 SQL，由 SQLite 引擎执行后比对结果集。
+不联网也能用，不起服务器，不装任何东西。
 
-**在线直接用**：<https://4choor3.github.io/sql-quest/>
+![主界面：递归 CTE 展开课程先修链，右栏自动切到校园选课库](docs/screenshots/main.jpg)
 
----
+## 用
 
-## 快速开始
-
-**方式一：单文件版（推荐，零依赖）**
-
-双击打开 `dist/sql-quest.html` 即可。所有依赖（含 SQLite 引擎）已内联进这一个文件，**不联网、不起服务器、不装任何东西**。拷到 U 盘、发给别人都能用。
-
-**方式二：源码版（改题库用）**
+三种方式，随便挑一种：
 
 ```bash
+# 1. 直接下载单文件版（推荐）
+#    dist/sql-quest.html 双击打开，依赖全在里面
+
+# 2. 在线用
+#    https://4choor3.github.io/sql-quest/
+
+# 3. 源码版（想改题库时用）
 npm run serve        # → http://127.0.0.1:8123
 ```
 
----
+单文件版 1.2MB，把 SQLite 引擎的 wasm 转成 base64 塞进了 js。代价是体积涨三分之一，换来的是 `file://` 下也能跑——不用起 HTTP 服务，拷到 U 盘或者发给别人都行。
 
-## 关卡设计
+仓库里另附两份示例库的 `.sql`，可以拖进 DBeaver 或 Navicat 自己练。
 
-8 章 39 关，难度递进，每关只引入一个新概念：
+## 关卡
 
-| 章节 | 关卡 | 覆盖内容 |
+基础篇 8 章 39 关，每关只引入一个新概念：
+
+| 章节 | 关卡 | 内容 |
 |---|---|---|
 | SELECT 基础 | 5 | 取列、`LIMIT`、`WHERE`、`ORDER BY`、`DISTINCT` |
 | 条件筛选 | 6 | 比较、`BETWEEN`、`IN`、`LIKE`、`IS NULL`、`AND` |
-| 聚合与分组 | 6 | `COUNT`/`SUM`/`AVG`/`MAX`、`GROUP BY`、`HAVING` |
+| 聚合与分组 | 6 | `COUNT` / `SUM` / `AVG` / `MAX`、`GROUP BY`、`HAVING` |
 | 多表连接 | 5 | `JOIN ... ON`、三表连接、`LEFT JOIN`、找缺失行 |
 | 子查询 | 4 | 标量子查询、`IN`、`EXISTS`、相关子查询 |
 | 函数与计算 | 5 | 算术、`LENGTH`、`\|\|` 拼接、`strftime`、`CASE WHEN` |
 | 窗口函数与 CTE | 4 | `ROW_NUMBER`、`PARTITION BY`、`WITH`、累计求和 |
 | 改数据 | 4 | `INSERT` / `UPDATE` / `DELETE` |
-| **进阶 · 多表穿梭** | 4 | 三表连接、LEFT JOIN 计数、自连接、HAVING 筛分组 |
-| **进阶 · 分组与排名** | 3 | 聚合后排名、`PARTITION BY` 取前 N、相关子查询比均值 |
-| **进阶 · 组合与递归** | 4 | `NOT EXISTS`、递归 CTE 展开层级、`CASE WHEN` 行列转换 |
 
-### 两套示例数据库
+进阶篇 3 章 11 关，换成校园选课库：
 
-**基础篇用「书店业务库」**，5 张表带真实外键关系：
+| 章节 | 关卡 | 内容 |
+|---|---|---|
+| 多表穿梭 | 4 | 三表连接、`LEFT JOIN` 计数、自连接、`HAVING` 筛分组 |
+| 分组与排名 | 3 | 聚合后排名、`PARTITION BY` 取每组前 N、相关子查询比均值 |
+| 组合与递归 | 4 | `NOT EXISTS`、递归 CTE 展开层级、`CASE WHEN` 行列转换 |
+
+进阶关不难在语法，难在组合。表一多，得自己想清楚从哪张出发、怎么连过去；而且多半要拆两步，先算中间结果再基于它算答案。
+
+### 两套库
+
+基础篇用书店业务，五张表带真实外键：
 
 ```
 authors(8) ──< books(25) ──< order_items(76) >── orders(30) >── customers(12)
 ```
 
-数据里埋了教学用的"坑"：
+数据是按教学需要造出来的，埋了几个坑。有个客户从没下过单，练 `LEFT JOIN` 的时候正好拿来分辨 `COUNT(o.id)` 和 `COUNT(*)`——后者会把没订单的那行数成 1。有本书的 `genre` 和 `published_year` 是 NULL，`IS NULL` 和相关子查询里的 `IS`（不是 `=`）都得用它。订单分已完成、已取消、待付款三种状态，聚合之前不先过滤就算错。
 
-- 客户「冯磊」**从没下过订单** → 练 `LEFT JOIN` 和 `COUNT(o.id)` 与 `COUNT(*)` 的区别
-- 《沙之书（残稿）》的 `genre` 和 `published_year` 是 **NULL** → 练 `IS NULL` 和相关子查询里的 `IS` 而非 `=`
-- 客户「杨帆」的 `city` 是 **NULL** → 练空值判断
-- 2 本书库存为 **0** → 练条件筛选
-- 订单有「已完成 / 已取消 / 待付款」三种状态 → 聚合时必须先过滤
-
-**进阶篇自动切到「校园选课库」**，同样是 5 张表但关系更深：
+进阶篇自动切到校园选课，也是五张表，但 `courses.prereq_id` 指向同一张表的 `id`，自连接和递归 CTE 有真实的层级能展开：
 
 ```
 departments(5) ──< teachers(18) ──< courses(24) ──┐
                      students(60) ──< enrollments(1021)
-                          courses.prereq_id ──> courses.id   （自引用）
+                          courses.prereq_id ──> courses.id
 ```
 
-- **自引用**：`courses.prereq_id` 指向同一张表的 `id` → 练自连接、递归 CTE
-- **多对多**：学生与课程通过 `enrollments` 关联，带成绩与状态
-- **5 个学生一节课都没选** → `NOT EXISTS` / `LEFT JOIN ... IS NULL` 有真实目标
-- **课程热度差异大**（4 ~ 50 人）→ 「冷门课程」类题目有区分度
-- 成绩有 NULL（在读/退课）、3 个学生没邮箱 → NULL 处理有实际场景
+另外特意留了 5 个一节课都没选的学生，不然 `NOT EXISTS` 这类题没有正确答案。课程热度也拉开了差距（4 ~ 50 人），冷门课程的题目才有区分度。
 
-> 切到进阶关时右侧面板会自动换成校园库（顶栏下方会显示当前库名），补全词库同步切换。
+切到进阶关时右侧面板会自动换成校园库，补全词库跟着换。
 
----
+## 判题
 
-## 核心机制
+答案写法定不下来，没法做文本比对。每关存一份参考 SQL，运行时现场算出期望结果，再和你的结果比。四种比法：`columns` 是列名加无序行集合，`ordered` 要求行顺序也对，`set` 只看行集合，`scalar` 比单个数值带浮点容差。
 
-**结果集比对，不是字符串比对。** 每关用参考答案现场算出期望结果，再和你的结果比对：
+不通过时给差异清单，不是一句「答案错误」。
 
-- `columns` — 列名 + 行集合（无序），适合普通查询
-- `ordered` — 行顺序也要对，适合考 `ORDER BY`
-- `set` — 只看行集合，列名宽松
-- `scalar` — 单个数值，带浮点容差
+![差异面板把写错的那一行直接摆出来](docs/screenshots/diff.jpg)
 
-**错误时给差异清单。** 不通过时会列出「期望有但你没有」和「你有但期望没有」的具体行，一眼看出是漏了过滤条件还是多算了行。
+上面这张是故意写错的：`COUNT(*)` 会把没订单的客户数成 1。面板把「冯磊 0」和「冯磊 1」两行并排摆出来，比任何解释都直接。
 
-**关键字约束防硬编码。** 题目要求用 `LEFT JOIN`，你写死 `WHERE name = '冯磊'` 凑答案会被拦下。
+另外加了关键字约束。题目要求用 `LEFT JOIN`，你写死 `WHERE name = '冯磊'` 凑答案会被拦下——结果对了，但这题白做了。
 
-**DML 关卡幂等。** 第 8 章会真的改数据，但每次运行前都从快照恢复，反复点运行不会主键冲突。
+第 8 章会真的改数据，不过每次运行前都从快照恢复，反复点运行不会主键冲突。通关记录和每关草稿存在 localStorage，关掉浏览器再打开还在。
 
-**进度自动保存。** 通关记录和每关草稿存在 `localStorage`，关掉浏览器再打开还在。
+## 编辑器
 
-**表格对齐是算出来的，不是碰巧。** 数值列**表头和数据用同一种对齐**（都右对齐），文本列都左对齐 —— 实测每列文字边缘偏差 **0px**。列宽按内容走，最后一个文本列吸收表格剩余宽度，所以结果表刚好铺满容器、短列（如 `id`）不会被 `width:100%` 撑宽。
+语法高亮是按 token 上色的：关键字琥珀、内置函数蓝、字符串绿、数字橙、注释灰斜体、表名青。列名故意不着色——一屏里列名太密集，全上色反而看不清语句结构。
 
-> 这里有两个 CSS 坑：① 表头默认左对齐而数字右对齐，两者能差 50px+；② `max-width` 对 table cell **不生效**，截断只能压在内层元素上。都已在回归测试里锁死。
+实现上是「文字透明的 textarea 叠在一层 `<pre>` 上面」。选区、光标、输入法都还是 textarea 的原生行为，看到的高亮来自底下那层。两层必须像素对齐，否则文字会重影，所以排版规则只写一处、两层共用，另外 textarea 用 `scrollbar-gutter: stable` 常驻预留滚动条槽位，高亮层补上同样的右内边距，两层的内容盒才等宽。
 
-**右侧实时数据面板。** 表结构面板不只是字段名 —— 点开任意一张表，直接看到库里**真实的数据行**（前 12 行，宽表在块内横向滚动）。窄面板看不全的宽表，点「放大」开全屏浮层看完整数据（最多 500 行，表头吸顶，`Esc` 关闭）。第 8 章 `INSERT` / `UPDATE` / `DELETE` 执行后，右侧行数和数据当场跟着变 —— 你能立刻看到自己改动的结果。
+补全按光标位置排序。语句开头给关键字（`sel` → `SELECT`），`FROM` 或 `JOIN` 后面给表名（`bo` → `books`），查询中段给列名（`st` → `stock`），打了 `b.` 就只给 books 的列。列名会收敛到当前语句真正用到的表——写 `SELECT * FROM customers WHERE st` 不会再把 `books.stock` 混进来。
 
-**一键格式化。** 挤成一行的 SQL 点「格式化」（或 `Shift + Option + F`）就排成规范缩进、关键字大写的多行结构。走的是 `sql-formatter` 的 SQLite 方言，字符串里的 `select`、注释都不会被误伤。格式化用 `execCommand` 写回，`⌘Z` 能撤销。已经排好的再点会提示「已经是格式化过的了」，不会白改一遍。
+别名也认。写了 `COUNT(*) AS book_count`，后面打 `book_co` 能补出来；`WITH city_stat AS (...)` 之后能补 CTE 名；派生表后面打 `b.ti`，能从内层 SELECT 推出 `title`。字符串和注释里的假别名（`'AS fake_name'`）不会误入候选。
 
-**输入的命令有颜色。** 编辑器里的 SQL 是实时着色的：**关键字**琥珀、**内置函数**蓝、**字符串**绿、**数字**橙、**注释**灰斜体、**表名**青 —— 一眼能看出语句结构。列名故意不着色，一屏里列名太密集、全上色反而看不清重点。
+光标坐标是用镜像 div 量的：复刻 textarea 的计算样式，把光标之前的文本灌进去，再插一个 span 量位置。好处是字号改了自动跟随，不用改代码。
 
-实现上是「文字透明的 textarea 叠在一层高亮 `<pre>` 之上」：两层共用同一套字体 / 行高 / 内边距 / 换行规则，内容盒等宽，所以光标、选区、补全位置都严丝合缝。当前文字**逐字一致**、换行行数**完全相同**都有回归测试盯着。中文输入法组合期间高亮实时跟随，正在打的字看得见。设置里可一键关掉。
+格式化走 sql-formatter 的 SQLite 方言，`Shift + Option + F` 或点按钮都行。全量包 312KB 带 20 多种方言，这项目只用 SQLite，就写了个 esbuild 插件把方言注册表换成只含 sqlite 的版本，压到 57KB。格式化用 `execCommand` 写回，`⌘Z` 能撤销；已经排好的再点会提示，不会白改一遍。
 
-**SQL 自动补全。** 打一个字母就出候选框，`↑` `↓` 选、`Tab` 或 `Enter` 插入、`Esc` 关闭，鼠标也能点。候选包含**SQL 关键字**、**内置函数**、**表名**、**列名**，右侧小字标注来源（`列 · books`）。
+## 设置
 
-**它认识你自己起的名字。** 写了 `COUNT(*) AS book_count`，再打 `HAVING book_co` 就能补出 `book_count`；`WITH city_stat AS (...)` 之后 `city_st` 补出 `city_stat`；派生表 `FROM (SELECT id, title FROM books) AS b` 后面打 `b.ti` 能推出内层列。字符串和注释里的假别名（`'AS fake_name'`）不会被误当成候选。
-
-排序懂上下文，不是一锅乱炖：
-
-| 你所在的位置 | 优先给什么 | 例子 |
-|---|---|---|
-| 语句开头 | 关键字 | `sel` → `SELECT` |
-| `FROM` / `JOIN` 之后 | 表名 | `bo` → `books` |
-| 查询中段 | 列名 / 别名 | `st` → `stock` |
-| `b.` / `c.` 之后 | **只给该表的列** | `b.ti` → `title` |
-
-**列名收敛到当前语句真正用到的表。** 写 `SELECT * FROM customers WHERE st` 时不会再把 `books.stock`、`orders.status` 混进来 —— 只给 `customers` 的列。多表 JOIN 时两张表的列都参与。还没写 `FROM` 时不收敛，关键字和所有表照给（不然刚开始打字会什么都补不出来）。
-
-`b.` / `c.` 的别名解析支持 `FROM books b`、`FROM customers AS c` 和派生表。
-
-**右栏跟着当前关卡走。** 进入每一关，右侧自动展开这关用到的表（含真实数据），不再固定停在第一张。你改表名时它也跟着变（去抖 380ms）。第 8 章 `INSERT` 后行数当场刷新。
-
-**设置面板。** 顶栏齿轮打开：
+顶栏齿轮里五项，存本机 localStorage，与闯关进度分开：
 
 | 设置项 | 选项 |
 |---|---|
@@ -132,9 +112,48 @@ departments(5) ──< teachers(18) ──< courses(24) ──┐
 | SQL 语法高亮 | 开启 / 关闭 |
 | 右栏跟随当前关卡 | 开启 / 关闭 |
 
-设置存本机 `localStorage`，与闯关进度分开存，一键可恢复默认。浅色主题不是简单反色 —— 强调色压暗到 `#9a6200`，实测正文对比度仍达 4.8:1 以上。
+浅色不是把深色反过来。琥珀在白色上对比度不够，强调色压暗到了 `#9a6200`，六类语法色在白底上的对比度都在 4.8:1 以上。
 
----
+## 开发
+
+```bash
+npm run serve     # 本地预览 :8123
+npm run verify    # 题库自检：参考答案端到端 + 起始代码不该通关 + 负例拦截
+npm run e2e       # 浏览器端到端 46 项
+npm run editor    # 格式化 / 补全 / 高亮 56 项
+npm run settings  # 设置面板 16 项
+npm run fullplay  # 浏览器里把 50 关逐个打通
+npm run adv       # 进阶 11 关逐个通关
+npm run offline   # 单文件版 file:// + 断网验证
+npm run live      # 部署后实测线上站点能不能真答题
+npm run content   # 右侧表格 DOM 文本 vs SQL 结果逐格比对
+npm run ui-audit  # 对比度 / 溢出 / 字号阶梯
+npm run vendor    # 重新裁剪打包 sql-formatter
+npm run build     # 裁剪依赖 + 打包 dist/sql-quest.html
+npm run data      # 重新生成两套示例数据库（需 uv）
+```
+
+除了 `serve` 和 `build`，其余都要先起服务。改完题库务必跑 `verify`，它会检查每关参考答案能否通过自己的校验。
+
+### 加一关
+
+在 `src/levels.js`（或 `levels-adv.js`）对应章节的 `levels` 数组里追加：
+
+```js
+{
+  id: '3-7',
+  title: '关卡名',
+  brief: '任务描述，支持 **粗体** 和 `行内代码`',
+  hint: '提示，可选，有则显示提示按钮',
+  starter: 'SELECT ',                    // 编辑器预填
+  solution: 'SELECT ... FROM ...;',      // 参考答案
+  compare: 'columns',                    // columns | ordered | set | scalar
+  require: [['GROUP BY', /\bgroup\s+by\b/i]],  // 没出现就拦下，防硬编码
+  // probe: 'SELECT ...',                // 仅 DML 关卡需要
+}
+```
+
+加完跑 `npm run verify`，它会用你的 `solution` 反推期望结果并验证自洽。
 
 ## 项目结构
 
@@ -142,111 +161,26 @@ departments(5) ──< teachers(18) ──< courses(24) ──┐
 sql/
 ├── index.html              入口
 ├── src/
-│   ├── levels.js           基础题库（39 关）
-│   ├── levels-adv.js       进阶题库（11 关 · 校园选课库）
+│   ├── levels.js           基础题库（39 关 · 书店库）
+│   ├── levels-adv.js       进阶题库（11 关 · 校园库）
 │   ├── engine.js           多数据集管理 / SQL 执行 / 结果比对 / 存档
 │   ├── autocomplete.js     自动补全（词库 / 作用域 / 别名识别 / 光标定位）
-│   ├── highlight.js        SQL 语法高亮（分词与着色）
+│   ├── highlight.js        语法高亮（分词与着色）
 │   ├── app.js              状态管理、界面渲染、设置面板
 │   └── styles.css          样式
-├── data/
-│   ├── schema.sql          示例数据库（可导入任意 SQLite 工具）
-│   └── schema.js           同上，供页面直接加载
-├── vendor/
-│   ├── sql-wasm.js         sql.js 1.10.3
-│   ├── sql-wasm.wasm       SQLite 编译产物
-│   ├── sql-wasm-binary.js  WASM 的 base64 内联版（供 file:// 用）
-│   └── sql-formatter.js    sql-formatter 裁剪版（仅 SQLite 方言，57 KB）
-├── tools/
-│   ├── gen_data.py         生成书店库（固定随机种子）
-│   ├── gen_data_adv.py     生成校园选课库
-│   ├── build-vendor.mjs    裁剪打包 sql-formatter（312 KB → 57 KB）
-│   ├── vendor-src/         裁剪打包的入口文件
-│   ├── verify.mjs          题库自检（39 关答案 + 负例）
-│   ├── e2e.mjs             浏览器端到端测试（35 项）
-│   ├── editor-test.mjs     格式化 + 补全专项测试（37 项）
-│   ├── settings-test.mjs   设置面板测试（16 项）
-│   ├── content-check.mjs   内容级校验（DOM 渲染 vs SQL 结果逐格比对）
-│   ├── adv-play.mjs        进阶 11 关逐个通关验证
-│   ├── fullplay.mjs        浏览器内全 50 关通关验证
-│   ├── offline.mjs         单文件版离线验证
-│   ├── build.mjs           打包单文件版
-│   ├── ui-audit.mjs        程序化视觉审计（对比度 / 溢出 / 交互态）
-│   └── serve.mjs           本地静态服务器
+├── data/                   两套库的 .sql 与内联 js
+├── vendor/                 sql.js、裁剪版 sql-formatter
+├── tools/                  数据生成、构建、12 个测试脚本
 └── dist/
     ├── sql-quest.html      单文件版（1190 KB，含 WASM 与两套库）
-    ├── bookstore.sql       书店库，可导入 DBeaver / Navicat 练手
-    └── campus.sql          校园选课库，同上
+    ├── bookstore.sql       书店库
+    └── campus.sql          校园选课库
 ```
 
----
+## 依赖
 
-## 开发命令
+sql.js 1.10.3 把 SQLite 编译成了 WebAssembly，查询全在浏览器本地跑，数据不出本机。页面本身零框架零构建。
 
-```bash
-npm run serve     # 本地预览 http://127.0.0.1:8123
-npm run verify    # 题库自检：39 关参考答案端到端 + starter 不该通过 + 负例拦截
-npm run e2e       # 浏览器端到端 46 项（需先 npm run serve）
-npm run editor    # 格式化 + 自动补全专项 37 项（需先 npm run serve）
-npm run settings  # 设置面板 16 项（需先 npm run serve）
-npm run ui-audit  # 程序化视觉审计：对比度 / 溢出 / 字号阶梯
-npm run content   # 内容级校验：右侧表格 DOM 文本 vs SQL 结果逐格一致
-npm run adv       # 进阶 11 关逐个通关
-npm run fullplay  # 浏览器内把 50 关逐个打通
-npm run offline   # 单文件版 file:// + 断网验证
-npm run vendor    # 重新裁剪打包 sql-formatter
-npm run build     # 裁剪依赖 + 打包 dist/sql-quest.html
-npm run data      # 重新生成两套示例数据库（需 uv）
-```
+测试用 playwright-core 配系统里已有的 Chrome，不额外下载浏览器。
 
-改动题库后**务必跑 `npm run verify`** —— 它会检查每关参考答案能否通过自己的校验、起始代码是否意外可通关、负例是否被正确拦截。
-
-### 加一道新关卡
-
-在 `src/levels.js` 对应章节的 `levels` 数组里追加：
-
-```js
-{
-  id: '3-7',
-  title: '关卡名',
-  brief: '任务描述，支持 **粗体** 和 `行内代码`',
-  hint: '提示（可选，有则显示提示按钮）',
-  starter: 'SELECT ',                    // 编辑器预填
-  solution: 'SELECT ... FROM ...;',      // 参考答案
-  compare: 'columns',                    // columns | ordered | set | scalar
-  require: [['GROUP BY', /\bgroup\s+by\b/i]],  // 必须出现的关键字
-  // probe: 'SELECT ...',                // 仅 DML 关卡需要
-}
-```
-
-加完跑 `npm run verify`，它会用你的 `solution` 反推期望结果并验证自洽。
-
----
-
-## 技术栈
-
-- **sql.js 1.10.3** — SQLite 编译成 WebAssembly，查询在浏览器本地执行，数据不出本机
-- 零构建、零框架的静态页面，依赖全部本地化，离线可用
-- 全部验证走真实 Chrome（`playwright-core` + 系统 Chrome，不下载额外浏览器）
-
----
-
-## 已验证
-
-| 项目 | 结果 |
-|---|---|
-| 浏览器端到端 | 46/46 通过，控制台无错误 |
-| 编辑器专项（格式化 / 补全 / 高亮） | **56/56** 通过（含别名/CTE/派生表识别、作用域收敛、表名位置只给表、两层像素对齐、输入法组合） |
-| 表格列对齐 | 每列表头与数据文字边缘偏差 **0px**；数值列右对齐、文本列左对齐 |
-| 结果表填充率 | 真实列占容器 **100%**，无大片留白 |
-| 设置面板 | 16/16 通过（主题切换、初始代码形式、补全开关、右栏跟随、持久化、恢复默认） |
-| 浅色主题对比度 | 4.8:1 ~ 16.8:1，全部达标（含六类语法色，最低 4.8:1） |
-| 高亮层与编辑器对齐 | 内容盒等宽、换行行数相同、13 项排版属性零差异 |
-| 右侧数据表格几何 | 5 张表全部在面板内，无溢出 / 无零宽单元格 / 表头与数据列像素级对齐 |
-| 右侧数据内容 | DOM 渲染文本与 SQL 查询结果**逐格完全一致**，浮层行数 = 库中总数 |
-| DML 实时联动 | 执行 `INSERT` 后右侧行数与预览当场由 8 行变 9 行 |
-| 题库自检 | **50/50**（基础 39 + 进阶 11） |
-| 浏览器内全 50 关逐个通关 | 50/50，进度与通关横幅正常 |
-| 进阶关跨库答题 | 11/11（自动切到校园选课库） |
-| 单文件版离线（`file://` + 断网） | 8/8 通过，零外部请求 |
-| 移动端（390×844） | 标签栏切换正常，无横向溢出 |
+MIT 协议。
