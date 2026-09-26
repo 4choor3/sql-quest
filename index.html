@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="在浏览器里真跑 SQL 的闯关式练习工具：34 道关卡，覆盖 SELECT 到窗口函数，实时校验结果。">
+<title>SQL 闯关训练场</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f1115'/><ellipse cx='50' cy='30' rx='28' ry='10' fill='none' stroke='%23f0b429' stroke-width='7'/><path d='M22 30v40c0 5.5 12.5 10 28 10s28-4.5 28-10V30' fill='none' stroke='%23f0b429' stroke-width='7'/><path d='M22 50c0 5.5 12.5 10 28 10s28-4.5 28-10' fill='none' stroke='%23f0b429' stroke-width='7'/></svg>">
+<link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+
+<!-- ============================ 顶栏 ============================ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/>
+        <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>
+      </svg>
+    </span>
+    <span class="brand-text">
+      <span class="brand-title">SQL 闯关训练场</span>
+      <span class="brand-sub">在浏览器里真跑 SQL · 结果实时校验</span>
+    </span>
+  </div>
+
+  <span class="topbar-spacer"></span>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <div class="progress-num" id="progress-num">0<span class="dim"> / 0</span></div>
+      <div class="progress-label" id="progress-label">加载中</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0"></div></div>
+  </div>
+
+  <button class="icon-btn" id="btn-settings" title="设置" aria-label="打开设置">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 110-4h.09A1.65 1.65 0 003.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H8a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V8a1.65 1.65 0 001.51 1H22a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+  </button>
+
+  <button class="icon-btn" id="btn-reset-all" title="清空进度，从头开始" aria-label="重置全部进度">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+    </svg>
+  </button>
+</header>
+
+<!-- ============================ 启动遮罩 ============================ -->
+<div id="boot" style="flex:1;display:grid;place-items:center;text-align:center;padding:48px">
+  <div>
+    <div style="color:var(--accent);margin-bottom:16px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/>
+        <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>
+      </svg>
+    </div>
+    <div id="boot-status" style="color:var(--text-2);font-size:14px">正在加载…</div>
+  </div>
+</div>
+
+<!-- ============================ 主界面 ============================ -->
+<div id="app" hidden style="flex:1;display:flex;flex-direction:column;min-height:0">
+
+  <nav class="mobile-tabs">
+    <button data-tab="levels">关卡</button>
+    <button data-tab="work" class="active">练习</button>
+    <button data-tab="schema">表结构</button>
+  </nav>
+
+  <div class="layout">
+
+    <!-- ---------------------- 左：关卡 ---------------------- -->
+    <aside class="panel levels-panel mobile-active">
+      <div class="panel-head">
+        <span>关卡</span>
+        <span class="spacer"></span>
+        <span id="chapter-total"></span>
+      </div>
+      <div class="levels-scroll" id="levels-scroll"></div>
+    </aside>
+
+    <!-- ---------------------- 中：练习 ---------------------- -->
+    <main class="panel work-panel">
+      <div class="work-scroll">
+        <!-- 注意：#finish-banner 必须在 #work-inner 之外，
+             因为 renderWork() 会整体替换 #work-inner 的 innerHTML -->
+        <div class="work-inner">
+          <div class="finish-banner" id="finish-banner">
+            <h3>全部通关</h3>
+            <p>39 关全部拿下。你已经覆盖了 SELECT、条件筛选、聚合分组、多表连接、
+               子查询、内置函数、窗口函数与 CTE，以及数据增删改。</p>
+          </div>
+          <div id="work-inner"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ---------------------- 右：表结构 ---------------------- -->
+    <aside class="panel schema-panel">
+      <div class="panel-head">
+        <span>表结构</span>
+        <span class="spacer"></span>
+        <span id="dataset-badge" title="当前关卡使用的数据库">书店业务库</span>
+      </div>
+      <div class="schema-scroll" id="schema-scroll"></div>
+    </aside>
+
+  </div>
+</div>
+
+<div class="toast-layer" id="toast-layer"></div>
+
+<!-- ==================== 表数据放大浮层 ==================== -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="表数据">
+    <div class="modal-head">
+      <span class="modal-title"></span>
+      <span class="modal-meta"></span>
+      <span class="spacer"></span>
+      <button class="icon-btn modal-close" data-close aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<!-- ==================== 设置面板 ==================== -->
+<div class="modal" id="settings" hidden>
+  <div class="modal-backdrop" data-close-settings></div>
+  <div class="modal-panel settings-panel" role="dialog" aria-modal="true" aria-label="设置">
+    <div class="modal-head">
+      <span class="settings-title">设置</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-close-settings aria-label="关闭设置">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+
+      <section class="setting">
+        <div class="setting-label">
+          <span class="setting-name">外观主题</span>
+          <span class="setting-desc">深色适合长时间练习，浅色适合明亮环境。</span>
+        </div>
+        <div class="theme-picker" role="radiogroup" aria-label="外观主题">
+          <button class="theme-card" data-theme-pick="dark" role="radio" aria-checked="true">
+            <span class="theme-preview preview-dark">
+              <i class="tp-bar"></i><i class="tp-block"></i><i class="tp-block short"></i>
+            </span>
+            <span class="theme-name">深色</span>
+          </button>
+          <button class="theme-card" data-theme-pick="light" role="radio" aria-checked="false">
+            <span class="theme-preview preview-light">
+              <i class="tp-bar"></i><i class="tp-block"></i><i class="tp-block short"></i>
+            </span>
+            <span class="theme-name">浅色</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="setting">
+        <div class="setting-label">
+          <span class="setting-name">进入关卡时的初始代码</span>
+          <span class="setting-desc">起始代码要怎么显示。已经写过的草稿不受影响。</span>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="初始代码形式">
+          <button class="seg-btn" data-starter-pick="raw" role="radio" aria-checked="false">原样</button>
+          <button class="seg-btn" data-starter-pick="formatted" role="radio" aria-checked="true">格式化后</button>
+        </div>
+      </section>
+
+      <section class="setting">
+        <div class="setting-label">
+          <span class="setting-name">输入时自动补全</span>
+          <span class="setting-desc">关键字、函数、表名、列名，以及你自己定义的别名。</span>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="自动补全">
+          <button class="seg-btn" data-ac-pick="on" role="radio" aria-checked="true">开启</button>
+          <button class="seg-btn" data-ac-pick="off" role="radio" aria-checked="false">关闭</button>
+        </div>
+      </section>
+
+      <section class="setting">
+        <div class="setting-label">
+          <span class="setting-name">SQL 语法高亮</span>
+          <span class="setting-desc">关键字、函数、字符串、数字、表名分别着色。</span>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="语法高亮">
+          <button class="seg-btn" data-hl-pick="on" role="radio" aria-checked="true">开启</button>
+          <button class="seg-btn" data-hl-pick="off" role="radio" aria-checked="false">关闭</button>
+        </div>
+      </section>
+
+      <section class="setting">
+        <div class="setting-label">
+          <span class="setting-name">右栏跟随当前关卡</span>
+          <span class="setting-desc">进入关卡时自动展开这关用到的表和数据。</span>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="右栏跟随">
+          <button class="seg-btn" data-focus-pick="on" role="radio" aria-checked="true">开启</button>
+          <button class="seg-btn" data-focus-pick="off" role="radio" aria-checked="false">关闭</button>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="settings-foot">
+      <span class="settings-note">设置保存在本机浏览器，不会上传。</span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" id="btn-settings-reset">恢复默认</button>
+    </div>
+  </div>
+</div>
+
+<noscript>
+  <div class="noscript">这个练习场需要 JavaScript 才能运行 SQL 引擎。</div>
+</noscript>
+
+<!-- 依赖与代码。注意顺序：sql.js → 内联 wasm → 格式化器 → 数据库 → 题库 → 引擎 → 补全 → 应用 -->
+<script src="vendor/sql-wasm.js"></script>
+<script src="vendor/sql-wasm-binary.js"></script>
+<script src="vendor/sql-formatter.js"></script>
+<script src="data/schema.js"></script>
+<script src="data/schema_adv.js"></script>
+<script src="src/levels.js"></script>
+<script src="src/levels-adv.js"></script>
+<script src="src/engine.js"></script>
+<script src="src/autocomplete.js"></script>
+<script src="src/highlight.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# 依赖（本地 npm 安装，不入库）
+node_modules/
+
+# 测试产物与截图
+qa/
+.dsh-vision-toolkit/
+
+# 系统
+.DS_Store
+
+# ↓ 本项目例外：dist/ 里放的是交付物本身（单文件版 sql-quest.html
+#   与两份示例库），不是构建中间产物，所以要入库。
+#   你的全局 ~/.gitignore_global 忽略了 dist/，这里显式取反。
+!dist/
+!dist/**

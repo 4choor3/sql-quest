@@ -1,0 +1,28 @@
+{
+  "name": "sql-quest",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SQL 闯关训练场 —— 浏览器里真跑 SQL 的闯关式练习工具",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "verify": "node tools/verify.mjs",
+    "e2e": "node tools/e2e.mjs",
+    "editor": "node tools/editor-test.mjs",
+    "settings": "node tools/settings-test.mjs",
+    "content": "node tools/content-check.mjs",
+    "fullplay": "node tools/fullplay.mjs",
+    "offline": "node tools/offline.mjs",
+    "ui-audit": "node tools/ui-audit.mjs",
+    "vendor": "node tools/build-vendor.mjs",
+    "build": "node tools/build-vendor.mjs && node tools/build.mjs",
+    "data": "uv run --no-project python tools/gen_data.py && uv run --no-project python tools/gen_data_adv.py",
+    "adv": "node tools/adv-play.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.49.0",
+    "sql-formatter": "^15.9.0",
+    "sql.js": "1.10.3"
+  }
+}
