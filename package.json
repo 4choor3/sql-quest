@@ -17,12 +17,19 @@
     "vendor": "node tools/build-vendor.mjs",
     "build": "node tools/build-vendor.mjs && node tools/build.mjs",
     "data": "uv run --no-project python tools/gen_data.py && uv run --no-project python tools/gen_data_adv.py",
-    "adv": "node tools/adv-play.mjs"
+    "adv": "node tools/adv-play.mjs",
+    "live": "node tools/live-check.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
     "playwright-core": "^1.49.0",
     "sql-formatter": "^15.9.0",
     "sql.js": "1.10.3"
-  }
+  },
+  "homepage": "https://4choor3.github.io/sql-quest/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/4choor3/sql-quest.git"
+  },
+  "license": "MIT"
 }
